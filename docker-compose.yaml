@@ -1,0 +1,78 @@
+services:
+
+  # Grafana shows data from the influxdb database
+  grafana:
+    image: grafana/grafana:8.4.3
+    container_name: grafana
+    restart: always
+    environment:
+      TZ: Europe/London
+    depends_on:
+      - telegraf
+      - mqtt
+      - influxdb
+    volumes:
+      - ./grafana/:/etc/grafana/
+      - grafana-storage:/var/lib/grafana
+    ports:
+      - 3000:3000
+    networks:
+      - influxdb-grafana
+
+  # InfluxDB stores data that comes from telegraf
+  influxdb:
+    image: influxdb:1.8.10
+    container_name: influxdb
+    restart: always
+    volumes:
+      - influxdb-storage:/var/lib/influxdb2
+    environment:
+      INFLUXDB_DB: "temp"
+      INFLUXDB_ADMIN_USER: "admin"
+      INFLUXDB_ADMIN_PASSWORD: "password"
+      TZ: Europe/London
+    networks:
+      - telegraf-influxdb
+      - influxdb-grafana
+
+  # Telegraf connects to the MQTT broker and forwards data to influxdb
+  telegraf:
+    image: telegraf:1.21.4
+    container_name: telegraf
+    restart: always
+    depends_on: 
+      - influxdb
+      - mqtt
+    environment:
+      TZ: Europe/London
+    networks:
+      - mqtt-telegraf
+      - telegraf-influxdb
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf
+
+  # The mqtt broker is called by the exterior
+  mqtt:
+    image: eclipse-mosquitto:2.0.14
+    container_name: mqtt
+    restart: always
+    environment:
+      TZ: Europe/London
+    volumes:
+      - ./mosquitto/passwd:/etc/mosquitto/passwd
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto-storage:/mosquitto
+    ports:
+      - 1883:1883
+    networks:
+      - mqtt-telegraf
+
+volumes:
+  grafana-storage:
+  influxdb-storage:
+  mosquitto-storage:
+
+networks:
+  mqtt-telegraf:
+  telegraf-influxdb:
+  influxdb-grafana:
