@@ -16,3 +16,5 @@ Grafana is already configured with the InfluxDB datasource.
 
 Note: This stack doesn't use influxdb verison 2, I had issues making grafana
 talk to the database.
+
+Warning: the security of this stack is not great, use at your own risk.
